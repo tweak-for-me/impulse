@@ -1,4 +1,4 @@
-//! The open game's trainer as the cheat list prints it: its rows, its number fields and the control column's width.
+//! The open game's trainer as the cheat list prints it: its rows, its value fields and the control column's width.
 
 use std::collections::HashMap;
 
@@ -27,9 +27,9 @@ pub struct Row {
 pub struct Printed {
     pub game: GameId,
     pub rows: Vec<Row>,
-    /// The number cheats' text fields, by cheat index.
+    /// The number and slider cheats' text fields, by cheat index.
     pub inputs: HashMap<usize, Entity<InputState>>,
-    /// What the fields of numbers without a button send on Enter or blur.
+    /// What the fields without a button send on Enter or blur.
     pub typed: Vec<Subscription>,
     /// The control column's least width: the widest control here, so the caps sit next to it. A longer button text widens
     /// its own row instead of running over the caps.
@@ -44,7 +44,7 @@ impl Printed {
             .cheats
             .iter()
             .enumerate()
-            .filter(|(_, cheat)| cheat.kind == Kind::Number)
+            .filter(|(_, cheat)| matches!(cheat.kind, Kind::Number | Kind::Slider))
             .map(|(index, _)| {
                 let input = cx.new(|cx| {
                     InputState::new(window, cx)
@@ -91,7 +91,7 @@ impl Printed {
 fn control_width(cheat: &Cheat) -> f32 {
     match cheat.kind {
         Kind::Toggle => 70.,
-        Kind::Slider => 134.,
+        Kind::Slider => 148.,
         Kind::Number => 140.,
         Kind::Button => 100.,
         Kind::Selection => 112.,

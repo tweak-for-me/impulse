@@ -1,6 +1,7 @@
 //! The control at the right of a cheat row, one per cheat kind, and the saved bar over the rows.
 
 use client::{
+    api::settle,
     library::GameId,
     trainer::{Sheet, Span, TOP_TICK},
 };
@@ -51,7 +52,7 @@ impl CheatList {
         }
     }
 
-    /// A number without a button takes its typed value on Enter or blur.
+    /// A number without a button, or a slider, takes its typed value on Enter or blur.
     pub(super) fn follow_fields(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         let Some(printed) = self.printed.as_mut() else { return };
         let game = &printed.game;
@@ -69,15 +70,17 @@ impl CheatList {
             .collect();
     }
 
-    /// The typed value within the cheat's limits; `Set` then shows it, else the field shows the value again.
+    /// The typed value within the cheat's limits, a slider's on a step; `Set` then shows it, else the field shows the
+    /// value again.
     fn typed(&mut self, game: &GameId, index: usize, input: &Entity<InputState>, window: &mut Window, cx: &mut Context<Self>) {
         let running = self.is_running(cx);
         let Some((cheat, now)) = self.current(game, index, cx) else { return };
         if cheat.args.button {
             return;
         }
+        // Against the value as the field would set it: a value a hotkey left between steps is no change.
         match field_value(input, cheat, cx) {
-            Some(value) if running && value != now => self.set_value(index, value, cx),
+            Some(value) if running && Some(value) != settle(cheat, now) => self.set_value(index, value, cx),
             _ => input.update(cx, |input, cx| input.set_value(number(now), window, cx)),
         }
     }
@@ -109,11 +112,11 @@ impl CheatList {
             Kind::Slider => h_flex()
                 .gap(px(5.))
                 .child(self.ticks(&printed.game, sheet, index, running, live, cx))
-                .child(mono(number(value), TYPE_FIELD).w(px(38.)).flex().justify_end().text_color(value_color))
+                .when_some(printed.inputs.get(&index), |control, input| control.child(field(input, running, 52.).text_color(value_color)))
                 .into_any_element(),
             Kind::Number if cheat.args.button => h_flex()
                 .gap(px(8.))
-                .when_some(printed.inputs.get(&index), |control, input| control.child(field(input, running)))
+                .when_some(printed.inputs.get(&index), |control, input| control.child(field(input, running, 72.)))
                 .child(self.press(&printed.game, index, key::CHEATS_SET, key::CHEATS_SET_DONE, running, cx))
                 .into_any_element(),
             Kind::Number => {
@@ -131,7 +134,9 @@ impl CheatList {
                 h_flex()
                     .gap(px(8.))
                     .child(nudge("decrease", "−", -step))
-                    .when_some(printed.inputs.get(&index), |control, input| control.child(field(input, running).text_color(value_color)))
+                    .when_some(printed.inputs.get(&index), |control, input| {
+                        control.child(field(input, running, 72.).text_color(value_color))
+                    })
                     .child(nudge("increase", "+", step))
                     .into_any_element()
             }
@@ -270,13 +275,14 @@ impl CheatList {
     }
 }
 
+/// What the typed text sets: a number within its limits, a slider's value on one of its steps.
 fn field_value(input: &Entity<InputState>, cheat: &Cheat, cx: &App) -> Option<f64> {
-    input.read(cx).value().trim().parse().ok().map(|value| cheat.args.clamp(value))
+    settle(cheat, input.read(cx).value().trim().parse().ok()?)
 }
 
-fn field(input: &Entity<InputState>, running: bool) -> Div {
+fn field(input: &Entity<InputState>, running: bool, width: f32) -> Div {
     value_box("")
-        .w(px(72.))
+        .w(px(width))
         .child(Input::new(input).appearance(false).disabled(!running).px(px(8.)).text_center().font_family(MONO).text_size(px(TYPE_FIELD)))
 }
 

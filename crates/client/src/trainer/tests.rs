@@ -69,9 +69,15 @@ fn a_toggle_flips_a_button_presses_and_an_unknown_does_nothing() {
 
 #[test]
 fn hotkey_steps_keep_the_origin_and_do_not_drift() {
-    let half = Args { min: Some(0.5), ..Args::default() };
-    assert_eq!(round_to(0.5 + 1., &half, 1.), 1.5);
-    assert_eq!(round_to(0.2 + 0.1, &Args::default(), 0.1), 0.3);
+    assert_eq!(round_to(0.5 + 1., 0.5, 1.), 1.5);
+    assert_eq!(round_to(0.2 + 0.1, 0., 0.1), 0.3);
+}
+
+#[test]
+fn a_slider_value_lands_on_a_step_without_drift() {
+    let span = Span { min: 0.5, max: 10., step: 0.1 };
+    assert_eq!([2., 1.23, 0.1, 12.].map(|typed| span.snap(typed)), [2., 1.2, 0.5, 10.]);
+    assert!((0..=TOP_TICK).all(|tick| span.value(tick) == (span.value(tick) * 10.).round() / 10.));
 }
 
 #[test]

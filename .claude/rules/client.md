@@ -34,5 +34,5 @@ The app's logic without GPUI: what `shell`'s entities hold and decide, and the f
 - Strings a frame prints are made once (`Game::name` is upper case, an `Arc<str>`); `shell` turns them into `SharedString` without a copy.
 - A rebind answers a held chord with its `Clash`, checked against the bindings as they are at the write: `reserved` (the overlay's test merges modifier sides) is never bound; a slot of the same cheat holding it (`Chord::same_keys`) allows only `Take`, slots of other cheats `Keep` too (Wand fires every cheat bound to a chord); `Take` unbinds every holder.
 - A protocol change bumps `api::VERSION` and regenerates the TypeScript. No source id or source name goes into a view: games are the bridge's handles, texts are worded.
-- Stepping follows Wand's, except that `round_to` keeps the decimals of `min` too.
+- Stepping follows Wand's, except that `round_to` keeps the decimals of `min` too; a slider's `snap` rounds the same way, so a typed 2 stays 2.
 - A game on another record's trainer keeps its `GameId`, install and launcher; only the offer is that record's. A link to a record gone, without a trainer or its own means its own. Its build outside the trainer's list is `Unverified`, never `UpdatePending`: another store's builds are no update.

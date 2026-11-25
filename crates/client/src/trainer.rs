@@ -170,7 +170,7 @@ fn step(cheat: &Cheat, value: f64, slot: usize) -> Option<Step> {
         Kind::Button => return Some(Step::Press(cheat.args.pressed)),
         Kind::Number | Kind::Slider => {
             let step = cheat.args.stride();
-            cheat.args.clamp(round_to(if up { value + step } else { value - step }, &cheat.args, step))
+            cheat.args.clamp(round_to(if up { value + step } else { value - step }, cheat.args.min.unwrap_or(0.), step))
         }
         Kind::Selection => {
             let count = cheat.args.options.len() as f64;
@@ -235,16 +235,16 @@ impl Span {
         self.snap(if up { value + by } else { value - by })
     }
 
-    /// Steps count from `min`, not from zero.
+    /// Steps count from `min`, not from zero; a typed 2 on a 0.1 step stays 2.
     pub(crate) fn snap(self, value: f64) -> f64 {
-        (self.min + ((value - self.min) / self.step).round() * self.step).clamp(self.min, self.max)
+        round_to(self.min + ((value - self.min) / self.step).round() * self.step, self.min, self.step).clamp(self.min, self.max)
     }
 }
 
 /// Keeps the precision of both the step and `min`: adding 1 to 0.5 should give 1.5, not 2.
-fn round_to(value: f64, args: &Args, step: f64) -> f64 {
+fn round_to(value: f64, min: f64, step: f64) -> f64 {
     let decimals = |x: f64| x.to_string().split_once('.').map_or(0, |(_, fraction)| fraction.len());
-    let scale = 10_f64.powi(decimals(step).max(args.min.map_or(0, decimals)) as i32);
+    let scale = 10_f64.powi(decimals(step).max(decimals(min)) as i32);
     let rounded = (value * scale).round() / scale;
     // Far past f64's range the scale overflows: the step is then too coarse to drift.
     if rounded.is_finite() { rounded } else { value }
